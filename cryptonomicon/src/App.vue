@@ -1,5 +1,31 @@
 <template>
   <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
+    <!-- Спинер  -->
+    <!-- <div
+      class="fixed w-100 h-100 opacity-80 bg-purple-800 inset-0 z-50 flex items-center justify-center"
+    >
+      <svg
+        class="animate-spin -ml-1 mr-3 h-12 w-12 text-white"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          class="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-width="4"
+        ></circle>
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+        ></path>
+      </svg>
+    </div> -->
+    <!-- -------------- -->
     <div class="container">
       <div class="w-full my-4"></div>
       <section>
@@ -8,7 +34,6 @@
             <label for="wallet" class="block text-sm font-medium text-gray-700"
               >Тикер</label
             >
-
             <div class="mt-1 relative rounded-md shadow-md">
               <input
                 type="text"
@@ -18,8 +43,29 @@
                 placeholder="Например DOGE"
                 v-model="tickerLabel"
                 v-on:keyup.enter="addTicker"
+                v-on:input="checkTicker = false"
               />
             </div>
+            <!-- Подсказки -->
+            <div
+              class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap"
+            >
+              <span
+                v-for="coin in coinsList.slice(0, 4)"
+                v-bind:key="coin"
+                @click="tickerLabel = coin"
+                class="inline-flex items-center px-2 m-1
+                rounded-md text-xs font-medium bg-gray-300 text-gray-800
+                cursor-pointer"
+              >
+                {{ coin }}
+              </span>
+            </div>
+            <div v-if="checkTicker" class="text-sm text-red-600">
+              Такой тикер уже добавлен
+            </div>
+
+            <!-- ---------------- -->
           </div>
         </div>
         <button
@@ -55,7 +101,7 @@
           >
             <div class="px-4 py-5 sm:p-6 text-center">
               <dt class="text-sm font-medium text-gray-500 truncate">
-                {{ ticker.name}} - USD
+                {{ ticker.name }} - USD
               </dt>
               <dd class="mt-1 text-3xl font-semibold text-gray-900">
                 {{ ticker.prase }}
@@ -89,11 +135,12 @@
           {{ sel.name }} - USD
         </h3>
         <div class="flex items-end border-gray-600 border-b border-l h-64">
-          <div 
+          <div
             v-for="(bar, idx) in outputGpaph()"
-            :key="idx" 
-            :style="{height: `${bar}%`}"
-            class="bg-purple-800 border w-10"></div>
+            :key="idx"
+            :style="{ height: `${bar}%` }"
+            class="bg-purple-800 border w-10"
+          ></div>
         </div>
         <button
           type="button"
@@ -137,47 +184,75 @@ export default {
       tickers: [],
       sel: null,
       graph: [],
+
+      checkTicker: false, //проверка тикера
+      coinsList: [],
+      limitCoins: 4,
     };
   },
+  computed: {},
   methods: {
     addTicker() {
-      const newTicker = { name: this.tickerLabel, prase: "-" };
-      newTicker.name = newTicker.name.toUpperCase();
-      this.tickers.push(newTicker);
-      
-      setInterval(async () => {
-        const f = await fetch(
-          `https://min-api.cryptocompare.com/data/price?fsym=${newTicker.name}&tsyms=USD&api_key=ff3992c5c7ad4685ce47b5901ca187ac37480d0927a04e0eb77dd38819e46bda`
-        );
-        const data = await f.json();
-
-        // console.log(data.USD);
-        // newTicker.prase = data.USD;
-        this.tickers.find((t) => t.name === newTicker.name).prase =
-          data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
-
-        if (this.sel?.name === newTicker.name) {
-          this.graph.push(data.USD);
-          // console.log(this.graph);
+      // если в массиве тикеров уже есть тикер с таким именем, то выводим сообщение, что тикер добавлен
+      this.tickers.forEach((e) => {
+        if (this.tickerLabel.toUpperCase() === e.name) {
+          this.checkTicker = true;
+          // console.log(this.tickerLabel.toUpperCase());
         }
-      }, 3000);
-      this.tickerLabel = "";
+      });
+
+      // если такго тикера нет
+      if (this.checkTicker === false) {
+        const newTicker = { name: this.tickerLabel, prase: "-" };
+        newTicker.name = newTicker.name.toUpperCase();
+
+        this.tickers.push(newTicker);
+        // console.log(newTicker);
+        setInterval(async () => {
+          const f = await fetch(
+            `https://min-api.cryptocompare.com/data/price?fsym=${newTicker.name}&tsyms=USD&api_key=ff3992c5c7ad4685ce47b5901ca187ac37480d0927a04e0eb77dd38819e46bda`
+          );
+          const data = await f.json();
+
+          // console.log(data.USD);
+          // newTicker.prase = data.USD; - так не работате
+          this.tickers.find((t) => t.name === newTicker.name).prase =
+            data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
+
+          if (this.sel?.name === newTicker.name) {
+            this.graph.push(data.USD);
+            // console.log(this.graph);
+          }
+        }, 3000);
+        this.tickerLabel = "";
+      }
     },
-    select(ticker){
+    select(ticker) {
       this.sel = ticker;
       this.graph = [];
     },
     deliteTicker(tickerToRemowe) {
       this.tickers = this.tickers.filter((t) => t !== tickerToRemowe);
     },
-    outputGpaph(){
+    outputGpaph() {
       const maxValye = Math.max(...this.graph);
       const minValye = Math.min(...this.graph);
-      return this.graph.map(prise => 5 +((prise - minValye) * 95)/(maxValye-minValye));
-    }
+      return this.graph.map(
+        (prise) => 5 + ((prise - minValye) * 95) / (maxValye - minValye)
+      );
+    },
+  },
+  //  получаем список монет с сервера
+  async created() {
+    const response = await fetch(
+      "https://min-api.cryptocompare.com/data/all/coinlist?summary=true"
+    );
+    const data = await response.json();
+    this.postId = data.id;
+    this.coinsList = Object.keys(data.Data);
+    console.log(this.coinsList);
   },
 };
 </script>
 
-<style>
-</style>
+<style></style>
