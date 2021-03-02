@@ -39,7 +39,9 @@
                 type="text"
                 name="wallet"
                 id="wallet"
-                class="block w-full pr-10 border-gray-300 text-gray-900 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm rounded-md"
+                class="block w-full
+              pr-10 border-gray-300 text-gray-900 focus:outline-none
+              focus:ring-gray-500 focus:border-gray-500 sm:text-sm rounded-md"
                 placeholder="Например DOGE"
                 v-model="tickerLabel"
                 v-on:keyup.enter="addTicker"
@@ -47,25 +49,28 @@
               />
             </div>
             <!-- Подсказки -->
-            <div
-              class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap"
-            >
-              <span
-                v-for="coin in coinsList.slice(0, 4)"
-                v-bind:key="coin"
-                @click="tickerLabel = coin"
-                class="inline-flex items-center px-2 m-1
+            <template v-if="tickerLabel">
+              <div
+                class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap"
+              >
+                <span
+                  v-for="coin in showTips"
+                  v-bind:key="coin"
+                  @click="(tickerLabel = coin), addTicker()"
+                  class="inline-flex items-center px-2 m-1
                 rounded-md text-xs font-medium bg-gray-300 text-gray-800
                 cursor-pointer"
-              >
-                {{ coin }}
-              </span>
-            </div>
+                >
+                  {{ coin }}
+                </span>
+              </div>
+            </template>
+
             <div v-if="checkTicker" class="text-sm text-red-600">
               Такой тикер уже добавлен
             </div>
 
-            <!-- ---------------- -->
+            <!-------------------->
           </div>
         </div>
         <button
@@ -142,6 +147,7 @@
             class="bg-purple-800 border w-10"
           ></div>
         </div>
+
         <button
           type="button"
           class="absolute top-0 right-0"
@@ -187,15 +193,35 @@ export default {
 
       checkTicker: false, //проверка тикера
       coinsList: [],
-      limitCoins: 4,
+      // limitCoins: 4,
     };
   },
-  computed: {},
+  computed: {
+    showTips() {
+      // return this.coinsList.slice(0, 10);
+
+      return this.coinsList
+        .filter((el) => {
+          if (
+            el.match(`${this.tickerLabel.toUpperCase()}`) !== null ||
+            el.match(`${this.tickerLabel.toLowerCase()}`) !== null
+          ) {
+            return el;
+          }
+        })
+        .slice(0, 4);
+    },
+  },
   methods: {
     addTicker() {
       // если в массиве тикеров уже есть тикер с таким именем, то выводим сообщение, что тикер добавлен
+
       this.tickers.forEach((e) => {
-        if (this.tickerLabel.toUpperCase() === e.name) {
+        if (
+          this.tickerLabel === e.name ||
+          this.tickerLabel === e.name.toUpperCase() ||
+          this.tickerLabel === e.name.toLowerCase()
+        ) {
           this.checkTicker = true;
           // console.log(this.tickerLabel.toUpperCase());
         }
@@ -242,6 +268,7 @@ export default {
       );
     },
   },
+
   //  получаем список монет с сервера
   async created() {
     const response = await fetch(
